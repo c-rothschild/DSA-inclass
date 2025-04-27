@@ -22,7 +22,7 @@ class HashTable:
                 bucket[i] = (key, value)
                 return
         
-        bucket.append(key, value)
+        bucket.append((key, value))
         self._count += 1
     
     def get(self, key: str):
@@ -49,4 +49,7 @@ class HashTable:
     
     def all_keys(self):
         return [k for bucket in self._buckets for (k, _) in bucket]
+    
 
+def my_hash_fn(key: str):
+    return int(key)
