@@ -60,6 +60,9 @@ food_eaten = True
 # Random obstacles, if desired. 
 obstacles = [(np.random.randint(low=0, high=WIDTH),np.random.randint(low=0, high=HEIGHT)) for i in range(int(num_obstacles))]
 
+
+
+
 # This method is a wrapper for the various AI methods. 
 # right now it just moves the snake randomly regardless
 # of the board state, because none of those methods are 
@@ -79,7 +82,7 @@ def get_AI_moves(ai_mode, bstate):
     elif ai_mode == 'dijkstra':
         return dijkstra_AI(bstate)  
     elif ai_mode == 'backt':
-        return backt_AI(bstate)    
+        return backt_AI(bstate)   
     else:
         raise NotImplementedError("Not a valid AI mode!\nValid modes are rand, greedy, astar, dijkstra, and backt.")    
 
@@ -106,16 +109,72 @@ def backt_AI(bstate):
     source = np.array(np.where(bstate == -2))
     target = np.array(np.where(bstate == 1))
     return random_AI(bstate)
-    
+
+
+#list of tuples in path to apple
+path_list = []
+
 def dijkstra_AI(bstate):
     source = np.array(np.where(bstate == -2))
     target = np.array(np.where(bstate == 1))
-    return random_AI(bstate)
+    sourceTup = (source[0,0],source[1,0])
+    targetTup = (target[0,0], target[1,0])
+    G = boardGraph()
+    try:
+        path = nx.dijkstra_path(G, sourceTup, targetTup)
+    except:
+        path_list.clear()
+        return random_AI(bstate)
+    path_list.clear()
+    path_list.extend(path[1:])
+    return [((path[1][0] - sourceTup[0]),(path[1][1] - sourceTup[1]))]
+
+def findDistance(G, node, target):
+    distance = 0
+    seen = {node}
+    ogadjmat = nx.adjacency_matrix(G).toarray()
+    adjmat = nx.adjacency_matrix(G).toarray()
+
+
+
+
+def steps2zero(num, source):
+    if num > 10:
+        num -= 19
+    elif num < -10:
+        num += 19
+
+    if num == 0:
+        return []
+    
+    return list(reversed([(source + i) % 20 for i in range(num, 0, int(np.abs(num)/num * -1))]))
+
             
 def greedy_AI(bstate):
     source = np.array(np.where(bstate == -2))
     target = np.array(np.where(bstate == 1))
-    return random_AI(bstate)
+    sourceTup = (source[0,0],source[1,0])
+    targetTup = (target[0,0], target[1,0])
+    G = boardGraph()
+    path = [sourceTup]
+    x_change = targetTup[0] - sourceTup[0]
+    y_change = targetTup[1] - sourceTup[1]
+    
+    x_steps = steps2zero(x_change, sourceTup[0])
+    path.extend(list(zip(x_steps, [int(source[1])] * len(x_steps))))
+    #brute force error fixing cuz I am lazy
+
+
+    y_steps = steps2zero(y_change, sourceTup[1])
+    path.extend(list(zip([int(target[0])] * len(y_steps), y_steps)))
+    path.append(targetTup)
+    path.append((targetTup[0], int(source[1])))
+    path_list.clear()
+    path_list.extend(path[2:])
+    print(path)
+    print(targetTup)
+    return [((path[1][0] - sourceTup[0]),(path[1][1] - sourceTup[1]))]
+
     
 def random_AI(bstate):
     return [[(0,1),(0,-1),(1,0),(-1,0)][np.random.randint(low=0,high=4)]]
@@ -140,7 +199,7 @@ def show_grid(graph):
             node_size=600)
     plt.show()
 
-def generateEmptyBoard():
+def generateEmptyBoard(remove_obstacles=True):
     G = nx.grid_graph(dim=(WIDTH, HEIGHT))
 
     #creating top to bottom edges
@@ -151,35 +210,24 @@ def generateEmptyBoard():
     #creating left to right edges
     for i in range(HEIGHT):
         G.add_edge((i, HEIGHT - 1),(i, 0))
+
+    if remove_obstacles:
+        G.remove_nodes_from(obstacles)
     
     return G
 
 
 
 gameBoard = generateEmptyBoard()
-def boardGraph(fx, fy):
-    #reset node attrivutes
-    nx.set_node_attributes(gameBoard, 0, 'type')
 
-    #remove obsticles
-    obsDict = dict(zip(obstacles, [-1] * len(obstacles)))
-    print(obsDict)
-    nx.set_node_attributes(gameBoard, obsDict, 'type')
-
-    snakeDict = dict(zip(snake_list, [-2] * len(snake_list)))
-    nx.set_node_attributes(gameBoard, snakeDict, 'type')
-    
-    nx.nodes[(fx, fy)]['type'] = 1
-    
-
-
-    print(gameBoard.nodes(data =True))
+def boardGraph():
+    G = gameBoard.copy()
+    G.remove_nodes_from(snake_list[:-1])
+    return G
 
 
 
-bstate = None
-fx = None
-fy = None
+
 
 
 
@@ -247,10 +295,18 @@ while not game_over:
         print("You lose! Score: %d" % snake_len)
         game_over = True
     else:
+
+
+        #drawing path
+        for xx, yy in path_list:
+            pygame.draw.rect(dis, (128, 0, 0), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+
         sncols = np.linspace(.5,1.0, len(snake_list))
         for jj, (xx, yy) in enumerate(snake_list):
             pygame.draw.rect(dis, (0, 255*sncols[jj], 32*sncols[jj]), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
-
+            
+        
+        
         for (xx, yy) in np.cumsum(np.array([[.5,.5],snake_list[-1]] + AI_moves), axis=0)[2:]:
             pygame.draw.circle(dis, red, (xx*STEPSIZE,yy*STEPSIZE), STEPSIZE/4)            
         
@@ -267,5 +323,4 @@ while not game_over:
         old_y1_change = y1_change
  
 pygame.quit()
-boardGraph(fx, fy)
 quit()
