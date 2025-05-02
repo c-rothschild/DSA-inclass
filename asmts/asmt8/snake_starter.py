@@ -140,9 +140,9 @@ def findDistance(G, node, target):
 
 def steps2zero(num, source):
     if num > 10:
-        num -= 19
+        num -= 20
     elif num < -10:
-        num += 19
+        num += 20
 
     if num == 0:
         return []
@@ -162,13 +162,12 @@ def greedy_AI(bstate):
     
     x_steps = steps2zero(x_change, sourceTup[0])
     path.extend(list(zip(x_steps, [int(source[1])] * len(x_steps))))
-    #brute force error fixing cuz I am lazy
+
 
 
     y_steps = steps2zero(y_change, sourceTup[1])
     path.extend(list(zip([int(target[0])] * len(y_steps), y_steps)))
     path.append(targetTup)
-    path.append((targetTup[0], int(source[1])))
     path_list.clear()
     path_list.extend(path[2:])
     print(path)
