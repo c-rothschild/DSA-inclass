@@ -323,102 +323,102 @@ def boardGraph():
 
 
 
-def run_game():
-    while not game_over:
-        
+
+while not game_over:
+    
 
 
-        if food_eaten:   
+    if food_eaten:   
+        fx = np.random.randint(low=0,high=WIDTH)
+        fy = np.random.randint(low=0,high=HEIGHT)
+        while (fx,fy) in snake_list or (fx,fy) in obstacles:
             fx = np.random.randint(low=0,high=WIDTH)
             fy = np.random.randint(low=0,high=HEIGHT)
-            while (fx,fy) in snake_list or (fx,fy) in obstacles:
-                fx = np.random.randint(low=0,high=WIDTH)
-                fy = np.random.randint(low=0,high=HEIGHT)
-            food_eaten = False
-            
-        dis.fill(white)
+        food_eaten = False
         
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                game_over = True
-            if mode == 'human':    
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        x1_change = -1
-                        y1_change = 0
-                    elif event.key == pygame.K_RIGHT:
-                        x1_change = 1
-                        y1_change = 0
-                    elif event.key == pygame.K_UP:
-                        y1_change = -1
-                        x1_change = 0
-                    elif event.key == pygame.K_DOWN:
-                        y1_change = 1
-                        x1_change = 0
-        if mode != 'human':
-            if len(AI_moves) == 0:
-                bstate = np.zeros((WIDTH,HEIGHT))
-                for xx,yy in snake_list:
-                    bstate[xx,yy] = -1
-                for xx,yy in obstacles:
-                    bstate[xx,yy] = -1
-                bstate[snake_list[-1][0], snake_list[-1][1]] = -2
-                bstate[fx,fy] = 1    
-                AI_moves = get_AI_moves(mode, bstate)     
-            x1_change, y1_change = AI_moves.pop(0) 
-
-        if not snake_list:
-            print("You lose! Score: %d" % snake_len)
-            break
-
-        if len(snake_list) > 1 :
-            if ((snake_list[-1][0] + x1_change) % WIDTH) == snake_list[-2][0] and ((snake_list[-1][1] + y1_change)% HEIGHT) == snake_list[-2][1]:
-                x1_change = old_x1_change
-                y1_change = old_y1_change
-        x1 += x1_change
-        y1 += y1_change          
-        
-        x1 = x1 % WIDTH
-        y1 = y1 % HEIGHT
-        
-        if x1 == fx and y1 == fy:
-            snake_len += 1
-            food_eaten = True
-        
-        snake_list.append((x1,y1))
-        snake_list = snake_list[-snake_len:]
-        
-        if len(list(set(snake_list))) < len(snake_list) or len(set(snake_list).intersection(set(obstacles))) > 0:
-            print("You lose! Score: %d" % snake_len)
-            game_over = True
-        else:
-
-
-            #drawing path
-            for xx, yy in path_list:
-                pygame.draw.rect(dis, (128, 0, 0), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
-
-            sncols = np.linspace(.5,1.0, len(snake_list))
-            for jj, (xx, yy) in enumerate(snake_list):
-                pygame.draw.rect(dis, (0, 255*sncols[jj], 32*sncols[jj]), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
-                
-            
-            
-            for (xx, yy) in np.cumsum(np.array([[.5,.5],snake_list[-1]] + AI_moves), axis=0)[2:]:
-                pygame.draw.circle(dis, red, (xx*STEPSIZE,yy*STEPSIZE), STEPSIZE/4)            
-            
-            if not food_eaten:
-                pygame.draw.rect(dis, red, [fx*STEPSIZE, fy*STEPSIZE, STEPSIZE, STEPSIZE])
-            
-            for xx, yy in obstacles:
-                pygame.draw.rect(dis, blue, [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
-            pygame.display.update()
-        
-            clock.tick(CLOCK_SPEED)
-            
-            old_x1_change = x1_change
-            old_y1_change = y1_change
+    dis.fill(white)
     
-    pygame.quit()
-    quit()
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            game_over = True
+        if mode == 'human':    
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    x1_change = -1
+                    y1_change = 0
+                elif event.key == pygame.K_RIGHT:
+                    x1_change = 1
+                    y1_change = 0
+                elif event.key == pygame.K_UP:
+                    y1_change = -1
+                    x1_change = 0
+                elif event.key == pygame.K_DOWN:
+                    y1_change = 1
+                    x1_change = 0
+    if mode != 'human':
+        if len(AI_moves) == 0:
+            bstate = np.zeros((WIDTH,HEIGHT))
+            for xx,yy in snake_list:
+                bstate[xx,yy] = -1
+            for xx,yy in obstacles:
+                bstate[xx,yy] = -1
+            bstate[snake_list[-1][0], snake_list[-1][1]] = -2
+            bstate[fx,fy] = 1    
+            AI_moves = get_AI_moves(mode, bstate)     
+        x1_change, y1_change = AI_moves.pop(0) 
+
+    if not snake_list:
+        print("You lose! Score: %d" % snake_len)
+        break
+
+    if len(snake_list) > 1 :
+        if ((snake_list[-1][0] + x1_change) % WIDTH) == snake_list[-2][0] and ((snake_list[-1][1] + y1_change)% HEIGHT) == snake_list[-2][1]:
+            x1_change = old_x1_change
+            y1_change = old_y1_change
+    x1 += x1_change
+    y1 += y1_change          
+    
+    x1 = x1 % WIDTH
+    y1 = y1 % HEIGHT
+    
+    if x1 == fx and y1 == fy:
+        snake_len += 1
+        food_eaten = True
+    
+    snake_list.append((x1,y1))
+    snake_list = snake_list[-snake_len:]
+    
+    if len(list(set(snake_list))) < len(snake_list) or len(set(snake_list).intersection(set(obstacles))) > 0:
+        print("You lose! Score: %d" % snake_len)
+        game_over = True
+    else:
+
+
+        #drawing path
+        for xx, yy in path_list:
+            pygame.draw.rect(dis, (128, 0, 0), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+
+        sncols = np.linspace(.5,1.0, len(snake_list))
+        for jj, (xx, yy) in enumerate(snake_list):
+            pygame.draw.rect(dis, (0, 255*sncols[jj], 32*sncols[jj]), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+            
+        
+        
+        for (xx, yy) in np.cumsum(np.array([[.5,.5],snake_list[-1]] + AI_moves), axis=0)[2:]:
+            pygame.draw.circle(dis, red, (xx*STEPSIZE,yy*STEPSIZE), STEPSIZE/4)            
+        
+        if not food_eaten:
+            pygame.draw.rect(dis, red, [fx*STEPSIZE, fy*STEPSIZE, STEPSIZE, STEPSIZE])
+        
+        for xx, yy in obstacles:
+            pygame.draw.rect(dis, blue, [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+        pygame.display.update()
+     
+        clock.tick(CLOCK_SPEED)
+        
+        old_x1_change = x1_change
+        old_y1_change = y1_change
+ 
+pygame.quit()
+quit()
