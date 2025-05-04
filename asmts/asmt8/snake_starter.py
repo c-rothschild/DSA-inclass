@@ -9,6 +9,7 @@ import networkx as nx
 import sys
 
 from heapq import *
+import heapq
 
 from matplotlib import pyplot as plt
 pygame.init()
@@ -100,10 +101,109 @@ def get_AI_moves(ai_mode, bstate):
 # Several of these methods demonstrate how to get the source
 # and target locations, but currently do not use this information. 
 
+def dist2target(source, target):
+    x_steps = np.abs(target[0] - source[0])
+    y_steps = np.abs(target[1] - source[1])
+
+    if x_steps > 10:
+        x_steps = 20 - x_steps
+    
+    if y_steps > 10:
+        y_steps = 20 - y_steps
+    
+    return x_steps + y_steps
+
+
+def getPath2Node(G, target):
+    
+    path = [target]
+    curParent = G.nodes[target]['parent']
+    while curParent != None:
+        path.append(curParent)
+        curParent = G.nodes[curParent]['parent']
+    return path[::-1]
+
 def astar_AI(bstate):
+    
     source = np.array(np.where(bstate == -2))
     target = np.array(np.where(bstate == 1))
-    return random_AI(bstate)
+    sourceTup = (int(source[0,0]), int(source[1,0]))
+    targetTup = (int(target[0,0]), int(target[1,0]))
+    G = boardGraph()
+    nx.set_node_attributes(G, np.inf, 'cost')
+    nx.set_node_attributes(G, np.inf, 'distFrStart')
+    nx.set_node_attributes(G, None, 'parent')
+
+    G.nodes[sourceTup]['cost'] = dist2target(sourceTup, targetTup)
+    G.nodes[sourceTup]['distFrStart'] = 0
+
+
+    # let the openList equal empty priority Q of nodes (lower cost = higher priority)
+    openList = []
+    heapq.heapify(openList)
+    # let the closedList equal empty collection of nodes (probably a dictionary for fastness)
+    closedList = {}
+    # put the startNode on the openList and the closedList (we didn’t start at the goal!)
+    heapq.heappush(openList, (G.nodes[sourceTup]['cost'], sourceTup))
+    closedList[sourceTup] = G.nodes[sourceTup]['cost']
+    path = []
+    # while the openList is not empty
+    while len(openList) != 0:
+        # Pop from the openlist and call that currentNode
+        curNode = heapq.heappop(openList)[1]
+            
+        # if currentNode is the goal
+        if curNode == targetTup:
+            # Backtrack to get path and return (you remembered every node’s parent, right?!)
+            path.extend(getPath2Node(G, targetTup))
+            break
+        # otherwise:
+        # for each non-obstacle neighbor of currentNode:
+        curNodeDist = G.nodes[curNode]['distFrStart']
+        for neighbor in G.neighbors(curNode):
+            # neighbor.cost = steps to get to currentNode + 1 + estimated distance from neighbor to goal
+            tempNeighborCost = curNodeDist + 1 + dist2target(neighbor, targetTup)
+
+
+            # if neighbor not in closedList or closedList[neighbor].cost > neighbor.cost
+            if neighbor not in closedList or G.nodes[neighbor]['cost'] > tempNeighborCost:
+
+                G.nodes[neighbor]['parent'] = curNode
+                G.nodes[neighbor]['cost'] = tempNeighborCost
+                G.nodes[neighbor]['distFrStart'] = curNodeDist + 1
+                # Add neighbor and its cost to closedList
+                closedList[neighbor] = 'balls'
+                
+                # Enqueue neighbor to openList
+                heapq.heappush(openList, (tempNeighborCost, neighbor))
+    
+
+
+    path_list.clear()
+    # print(sourceTup)
+    # print(targetTup)
+    
+    path_list.extend(path[1:])
+    if len(path_list) == 0:
+        return random_dense_AI(bstate)
+    
+
+
+    return [((path[1][0] - sourceTup[0]),(path[1][1] - sourceTup[1]))]
+
+def random_dense_AI(bstate):
+    source = np.array(np.where(bstate == -2))
+    sourceTup = (int(source[0,0]), int(source[1,0]))
+    G = boardGraph()
+    move = random_AI(bstate)
+    for neighbor in G.neighbors(sourceTup):
+        move = [((neighbor[0] - sourceTup[0]),(neighbor[1] - sourceTup[1]))]
+        if len(list(G.neighbors(neighbor))) < 4:
+            return move
+    return move
+
+
+
     
 def backt_AI(bstate):
     source = np.array(np.where(bstate == -2))
@@ -124,16 +224,11 @@ def dijkstra_AI(bstate):
         path = nx.dijkstra_path(G, sourceTup, targetTup)
     except:
         path_list.clear()
-        return random_AI(bstate)
+        return random_dense_AI(bstate)
     path_list.clear()
     path_list.extend(path[1:])
     return [((path[1][0] - sourceTup[0]),(path[1][1] - sourceTup[1]))]
 
-def findDistance(G, node, target):
-    distance = 0
-    seen = {node}
-    ogadjmat = nx.adjacency_matrix(G).toarray()
-    adjmat = nx.adjacency_matrix(G).toarray()
 
 
 
@@ -170,8 +265,7 @@ def greedy_AI(bstate):
     path.append(targetTup)
     path_list.clear()
     path_list.extend(path[2:])
-    print(path)
-    print(targetTup)
+
     return [((path[1][0] - sourceTup[0]),(path[1][1] - sourceTup[1]))]
 
     
@@ -229,97 +323,102 @@ def boardGraph():
 
 
 
+def run_game():
+    while not game_over:
+        
 
-while not game_over:
-    
 
-
-    if food_eaten:   
-        fx = np.random.randint(low=0,high=WIDTH)
-        fy = np.random.randint(low=0,high=HEIGHT)
-        while (fx,fy) in snake_list or (fx,fy) in obstacles:
+        if food_eaten:   
             fx = np.random.randint(low=0,high=WIDTH)
             fy = np.random.randint(low=0,high=HEIGHT)
-        food_eaten = False
-        
-    dis.fill(white)
-    
-    
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            game_over = True
-        if mode == 'human':    
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    x1_change = -1
-                    y1_change = 0
-                elif event.key == pygame.K_RIGHT:
-                    x1_change = 1
-                    y1_change = 0
-                elif event.key == pygame.K_UP:
-                    y1_change = -1
-                    x1_change = 0
-                elif event.key == pygame.K_DOWN:
-                    y1_change = 1
-                    x1_change = 0
-    if mode != 'human':
-        if len(AI_moves) == 0:
-            bstate = np.zeros((WIDTH,HEIGHT))
-            for xx,yy in snake_list:
-                bstate[xx,yy] = -1
-            for xx,yy in obstacles:
-                bstate[xx,yy] = -1
-            bstate[snake_list[-1][0], snake_list[-1][1]] = -2
-            bstate[fx,fy] = 1    
-            AI_moves = get_AI_moves(mode, bstate)     
-        x1_change, y1_change = AI_moves.pop(0)               
-    if len(snake_list) > 1 :
-        if ((snake_list[-1][0] + x1_change) % WIDTH) == snake_list[-2][0] and ((snake_list[-1][1] + y1_change)% HEIGHT) == snake_list[-2][1]:
-            x1_change = old_x1_change
-            y1_change = old_y1_change
-    x1 += x1_change
-    y1 += y1_change          
-    
-    x1 = x1 % WIDTH
-    y1 = y1 % HEIGHT
-    
-    if x1 == fx and y1 == fy:
-        snake_len += 1
-        food_eaten = True
-    
-    snake_list.append((x1,y1))
-    snake_list = snake_list[-snake_len:]
-    
-    if len(list(set(snake_list))) < len(snake_list) or len(set(snake_list).intersection(set(obstacles))) > 0:
-        print("You lose! Score: %d" % snake_len)
-        game_over = True
-    else:
-
-
-        #drawing path
-        for xx, yy in path_list:
-            pygame.draw.rect(dis, (128, 0, 0), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
-
-        sncols = np.linspace(.5,1.0, len(snake_list))
-        for jj, (xx, yy) in enumerate(snake_list):
-            pygame.draw.rect(dis, (0, 255*sncols[jj], 32*sncols[jj]), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+            while (fx,fy) in snake_list or (fx,fy) in obstacles:
+                fx = np.random.randint(low=0,high=WIDTH)
+                fy = np.random.randint(low=0,high=HEIGHT)
+            food_eaten = False
             
+        dis.fill(white)
         
         
-        for (xx, yy) in np.cumsum(np.array([[.5,.5],snake_list[-1]] + AI_moves), axis=0)[2:]:
-            pygame.draw.circle(dis, red, (xx*STEPSIZE,yy*STEPSIZE), STEPSIZE/4)            
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = True
+            if mode == 'human':    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        x1_change = -1
+                        y1_change = 0
+                    elif event.key == pygame.K_RIGHT:
+                        x1_change = 1
+                        y1_change = 0
+                    elif event.key == pygame.K_UP:
+                        y1_change = -1
+                        x1_change = 0
+                    elif event.key == pygame.K_DOWN:
+                        y1_change = 1
+                        x1_change = 0
+        if mode != 'human':
+            if len(AI_moves) == 0:
+                bstate = np.zeros((WIDTH,HEIGHT))
+                for xx,yy in snake_list:
+                    bstate[xx,yy] = -1
+                for xx,yy in obstacles:
+                    bstate[xx,yy] = -1
+                bstate[snake_list[-1][0], snake_list[-1][1]] = -2
+                bstate[fx,fy] = 1    
+                AI_moves = get_AI_moves(mode, bstate)     
+            x1_change, y1_change = AI_moves.pop(0) 
+
+        if not snake_list:
+            print("You lose! Score: %d" % snake_len)
+            break
+
+        if len(snake_list) > 1 :
+            if ((snake_list[-1][0] + x1_change) % WIDTH) == snake_list[-2][0] and ((snake_list[-1][1] + y1_change)% HEIGHT) == snake_list[-2][1]:
+                x1_change = old_x1_change
+                y1_change = old_y1_change
+        x1 += x1_change
+        y1 += y1_change          
         
-        if not food_eaten:
-            pygame.draw.rect(dis, red, [fx*STEPSIZE, fy*STEPSIZE, STEPSIZE, STEPSIZE])
+        x1 = x1 % WIDTH
+        y1 = y1 % HEIGHT
         
-        for xx, yy in obstacles:
-            pygame.draw.rect(dis, blue, [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
-        pygame.display.update()
-     
-        clock.tick(CLOCK_SPEED)
+        if x1 == fx and y1 == fy:
+            snake_len += 1
+            food_eaten = True
         
-        old_x1_change = x1_change
-        old_y1_change = y1_change
- 
-pygame.quit()
-quit()
+        snake_list.append((x1,y1))
+        snake_list = snake_list[-snake_len:]
+        
+        if len(list(set(snake_list))) < len(snake_list) or len(set(snake_list).intersection(set(obstacles))) > 0:
+            print("You lose! Score: %d" % snake_len)
+            game_over = True
+        else:
+
+
+            #drawing path
+            for xx, yy in path_list:
+                pygame.draw.rect(dis, (128, 0, 0), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+
+            sncols = np.linspace(.5,1.0, len(snake_list))
+            for jj, (xx, yy) in enumerate(snake_list):
+                pygame.draw.rect(dis, (0, 255*sncols[jj], 32*sncols[jj]), [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+                
+            
+            
+            for (xx, yy) in np.cumsum(np.array([[.5,.5],snake_list[-1]] + AI_moves), axis=0)[2:]:
+                pygame.draw.circle(dis, red, (xx*STEPSIZE,yy*STEPSIZE), STEPSIZE/4)            
+            
+            if not food_eaten:
+                pygame.draw.rect(dis, red, [fx*STEPSIZE, fy*STEPSIZE, STEPSIZE, STEPSIZE])
+            
+            for xx, yy in obstacles:
+                pygame.draw.rect(dis, blue, [xx*STEPSIZE, yy*STEPSIZE, STEPSIZE, STEPSIZE])
+            pygame.display.update()
+        
+            clock.tick(CLOCK_SPEED)
+            
+            old_x1_change = x1_change
+            old_y1_change = y1_change
+    
+    pygame.quit()
+    quit()
