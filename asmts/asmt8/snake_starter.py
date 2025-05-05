@@ -37,11 +37,11 @@ HEIGHT = 20
 STEPSIZE = 20
 
 # How fast the game runs. Higher values are faster. 
-CLOCK_SPEED = 10
+CLOCK_SPEED = 30
  
 # Making a pygame display. 
 dis = pygame.display.set_mode((WIDTH*STEPSIZE,HEIGHT*STEPSIZE))
-pygame.display.set_caption('Snake!')
+pygame.display.set_caption(mode)
 
 # Initial variables to store the starting x and y position,
 # and whether the game has ended. 
@@ -130,10 +130,12 @@ def astar_AI(bstate):
     sourceTup = (int(source[0,0]), int(source[1,0]))
     targetTup = (int(target[0,0]), int(target[1,0]))
     G = boardGraph()
+    
     nx.set_node_attributes(G, np.inf, 'cost')
     nx.set_node_attributes(G, np.inf, 'distFrStart')
     nx.set_node_attributes(G, None, 'parent')
 
+    #print(G.nodes[sourceTup])
     G.nodes[sourceTup]['cost'] = dist2target(sourceTup, targetTup)
     G.nodes[sourceTup]['distFrStart'] = 0
 
@@ -197,7 +199,10 @@ def random_dense_AI(bstate):
     G = boardGraph()
     move = random_AI(bstate)
     for neighbor in G.neighbors(sourceTup):
+        
         move = [((neighbor[0] - sourceTup[0]),(neighbor[1] - sourceTup[1]))]
+        if len(list(G.neighbors(neighbor))) <= 1:
+            continue
         if len(list(G.neighbors(neighbor))) < 4:
             return move
     return move
