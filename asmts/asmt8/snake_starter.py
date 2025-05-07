@@ -11,6 +11,8 @@ import sys
 from heapq import *
 import heapq
 
+import random
+
 from matplotlib import pyplot as plt
 pygame.init()
 
@@ -37,7 +39,7 @@ HEIGHT = 20
 STEPSIZE = 20
 
 # How fast the game runs. Higher values are faster. 
-CLOCK_SPEED = 30
+CLOCK_SPEED = 1000
  
 # Making a pygame display. 
 dis = pygame.display.set_mode((WIDTH*STEPSIZE,HEIGHT*STEPSIZE))
@@ -122,6 +124,7 @@ def getPath2Node(G, target):
         path.append(curParent)
         curParent = G.nodes[curParent]['parent']
     return path[::-1]
+
 
 def astar_AI(bstate):
     
@@ -208,6 +211,17 @@ def random_dense_AI(bstate):
     return move
 
 
+def random_possible_AI(bstate):
+    source = np.array(np.where(bstate == -2))
+    sourceTup = (int(source[0,0]), int(source[1,0]))
+    G = boardGraph()
+    neighbors = list(G.neighbors(sourceTup))
+
+    if len(neighbors) == 0:
+        return random_AI(bstate)
+    
+    move = random.choice(neighbors)
+    return [((move[0] - sourceTup[0]),(move[1] - sourceTup[1]))]
 
     
 def backt_AI(bstate):
@@ -270,6 +284,9 @@ def greedy_AI(bstate):
     path.append(targetTup)
     path_list.clear()
     path_list.extend(path[2:])
+    if not G.has_node(path[1]):
+        return random_possible_AI(bstate)
+
 
     return [((path[1][0] - sourceTup[0]),(path[1][1] - sourceTup[1]))]
 
